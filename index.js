@@ -1,6 +1,8 @@
 const express = require('express');
 const app = express();
-const cors = require('cors');
+const { User } = require('./db/mongo');
+
+const cors = require('cors'); //CORS = Cross Origin Ressource Sharing, permet aux serveurs de spécifier quelles origines (domaines) sont autorisées à accéder à leurs ressources
 
 const PORT = 4000;
 
@@ -28,56 +30,57 @@ app.listen(PORT, function () {
   console.log(`Server is running on port: ${PORT}`);
 });
 
-const users = [];
-
-function signUp(req, res) {
+async function signUp(req, res) {
+  //chercher si un utilisateur avec le même email existe déjà
   const body = req.body;
   const email = body.email;
   const password = body.password;
 
-  const userInDb = users.find((user) => user.email === email);
+  const userInDb = await User.findOne({
+    email: email,
+  });
+  console.log('userInDb :', userInDb);
   if (userInDb != null) {
     res.status(400).send('Email already exists');
     return;
   }
 
+  //Si rien de trouvé, alors création d'un user
   const user = {
     email: email,
     password: password,
   };
 
-  users.push(user);
-  res.send('Sign up');
-  console.log('users in db :', users);
+  try {
+    await User.create(user);
+    res.send('user créé');
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Something went wrong');
+  }
 }
 
-function logIn(req, res) {
+async function logIn(req, res) {
   const body = req.body;
   const email = body.email;
-  console.log('body :', body);
-  console.log('users in db :', users);
 
-  const userInDb = users.find((user) => user.email === email);
+  const userInDb = await User.findOne({
+    email: email,
+  });
+  console.log('userInDb :', userInDb);
+
   if (userInDb == null) {
-    res.status(401).send('Wrong IDs');
+    res.status(401).send('Wrong email');
     return;
   }
   const passwordInDb = userInDb.password;
   if (passwordInDb != body.password) {
-    res.status(401).send('Wrong IDs');
+    res.status(401).send('Wrong password');
     return;
   }
 
-  if (body.email != 'gael.dewas@gmail.com') {
-    res.status(401).send('wrong IDs');
-    return;
-  }
-  if (body.password != '1234') {
-    res.status(401).send('wrong IDs');
-    return;
-  }
   res.send({
-    userId: '123',
+    userId: userInDb._id,
     token: 'token',
   });
 }
