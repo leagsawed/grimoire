@@ -1,8 +1,9 @@
-const mongoose = require('mongoose');
+require('dotenv').config();
 
-const PASSWORD = 'js9Bhqw5hndaOZxC';
-const USER = 'sawedleag';
-const DB_URL = `mongodb+srv://${USER}:${PASSWORD}@cluster0.ddrrd.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
+const mongoose = require('mongoose');
+const uniqueValidator = require('mongoose-unique-validator');
+
+const DB_URL = `mongodb+srv://${process.env.USER}:${process.env.PASSWORD}@${process.env.DB_DOMAIN}`;
 
 async function connect() {
   try {
@@ -14,9 +15,14 @@ async function connect() {
 }
 connect();
 
-const UserSchema = new mongoose.Schema({
-  email: String,
-  password: String,
+// const UserSchema = new mongoose.Schema({
+//   email: String,
+//   password: String,
+// });
+
+const UserSchema = mongoose.Schema({
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
 });
 
 const User = mongoose.model('User', UserSchema);
@@ -25,6 +31,6 @@ const gael = new User({
   password: 'mongoDB',
 });
 
-// gael.save().then(() => console.log('gael saved'));
+UserSchema.plugin(uniqueValidator);
 
-module.exports = { User };
+module.exports = { User, UserSchema };

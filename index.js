@@ -1,8 +1,8 @@
 const express = require('express');
 const app = express();
 const { User } = require('./db/mongo');
-
-const cors = require('cors'); //CORS = Cross Origin Ressource Sharing, permet aux serveurs de spécifier quelles origines (domaines) sont autorisées à accéder à leurs ressources
+const cors = require('cors'); //Cross Origin Ressource Sharing,  permet de définir quelles origines peuvent accéder aux ressources du serveur
+const bcrypt = require('bcrypt');
 
 const PORT = 4000;
 
@@ -14,17 +14,9 @@ function sayHello(req, res) {
 }
 
 app.get('/', sayHello);
+
 app.post('/api/auth/signup', signUp);
 app.post('/api/auth/login', logIn);
-
-app.use((req, res, next) => {
-  console.log('requete reçue');
-  next();
-});
-
-app.use((req, res, next) => {
-  res.json({ message: 'votre requete a bien été reçue' });
-});
 
 app.listen(PORT, function () {
   console.log(`Server is running on port: ${PORT}`);
@@ -48,7 +40,7 @@ async function signUp(req, res) {
   //Si rien de trouvé, alors création d'un user
   const user = {
     email: email,
-    password: password,
+    password: hashPassword(password),
   };
 
   try {
@@ -74,7 +66,7 @@ async function logIn(req, res) {
     return;
   }
   const passwordInDb = userInDb.password;
-  if (passwordInDb != body.password) {
+  if (!isPasswordCorrect(body.password, passwordInDb)) {
     res.status(401).send('Wrong password');
     return;
   }
@@ -83,6 +75,19 @@ async function logIn(req, res) {
     userId: userInDb._id,
     token: 'token',
   });
+}
+
+//cryptage du password
+function hashPassword(password) {
+  const salt = bcrypt.genSaltSync(10);
+  const hash = bcrypt.hashSync(password, salt);
+  return hash;
+}
+
+//Verification du password
+function isPasswordCorrect(password, hash) {
+  const isPasswordOk = bcrypt.compareSync(password, hash);
+  return isPasswordOk;
 }
 
 module.exports = app;
