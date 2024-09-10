@@ -15,22 +15,6 @@ async function connect() {
 }
 connect();
 
-// const UserSchema = new mongoose.Schema({
-//   email: String,
-//   password: String,
-// });
-
-const UserSchema = mongoose.Schema({
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-});
-
-const User = mongoose.model('User', UserSchema);
-const gael = new User({
-  email: 'gael.dewas@gmail.com',
-  password: 'mongoDB',
-});
-
 UserSchema.plugin(uniqueValidator);
 
-module.exports = { User, UserSchema };
+module.exports = { mongoose };
