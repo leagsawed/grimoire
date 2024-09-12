@@ -1,5 +1,7 @@
 const bcrypt = require('bcrypt');
 const { User } = require('../models/User.js');
+const jwt = require('jsonwebtoken');
+
 const express = require('express');
 
 async function signUp(req, res) {
@@ -48,10 +50,17 @@ async function logIn(req, res) {
     res.status(401).send('Wrong password');
     return;
   }
+  function generateToken(userInDb) {
+    const payload = { userId: userInDb };
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: '1h',
+    });
+    return token;
+  }
 
   res.send({
     userId: userInDb._id,
-    token: 'token',
+    token: generateToken(userInDb._id),
   });
 }
 
@@ -69,7 +78,11 @@ function isPasswordCorrect(password, hash) {
 }
 
 const usersRouter = express.Router();
-usersRouter.post('signup', signUp);
-usersRouter.post('login', logIn);
+usersRouter.post('/signup', signUp);
+usersRouter.post('/login', logIn);
 
 module.exports = { usersRouter };
+
+// User.deleteMany({}).then(() => {
+//   console.log('users deleted');
+// });
