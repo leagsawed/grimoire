@@ -19,7 +19,6 @@ function checkToken(req, res, next) {
   const token = authorization.split(' ')[1];
   try {
     const tokenPayload = jwt.verify(token, process.env.JWT_SECRET);
-    console.log('tokenPayload :', tokenPayload);
     next();
   } catch (e) {
     console.error(e);
