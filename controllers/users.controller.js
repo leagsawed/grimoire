@@ -53,7 +53,7 @@ async function logIn(req, res) {
   function generateToken(userInDb) {
     const payload = { userId: userInDb };
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
-      expiresIn: '1h',
+      expiresIn: '1d',
     });
     return token;
   }

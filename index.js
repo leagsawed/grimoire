@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const { app } = require('./config/app.js');
 const { usersRouter } = require('./controllers/users.controller');
 const { booksRouter } = require('./controllers/books.controller.js');
