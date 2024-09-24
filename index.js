@@ -11,6 +11,4 @@ app.get('/', (req, res) => res.send('Hello World, Server running!'));
 app.use('/api/auth', usersRouter);
 app.use('/api/books', booksRouter);
 
-app.listen(PORT, function () {
-  console.log(`Server is running on port: ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server is running on port: ${PORT}`));

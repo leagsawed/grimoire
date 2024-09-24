@@ -4,32 +4,35 @@ const jwt = require('jsonwebtoken');
 
 const express = require('express');
 
+const usersRouter = express.Router();
+usersRouter.post('/signup', signUp);
+usersRouter.post('/login', logIn);
+
 async function signUp(req, res) {
-  //chercher si un utilisateur avec le même email existe déjà
   const body = req.body;
   const email = body.email;
   const password = body.password;
 
-  const userInDb = await User.findOne({
-    email: email,
-  });
-  if (userInDb != null) {
-    res.status(400).send('Email already exists');
+  if (!email || !password || email.trim() === '' || password.trim() === '') {
+    res.status(400).send('Email and password are required');
     return;
   }
 
-  //Si rien de trouvé, alors création d'un user
-  const user = {
-    email: email,
-    password: hashPassword(password),
-  };
-
   try {
-    await User.create(user);
-    res.send('user créé');
+    const user = new User({
+      email: email.trim(),
+      password: hashPassword(password),
+    });
+
+    await user.save();
+    res.send('User created');
   } catch (error) {
-    console.error(error);
-    res.status(500).send('Something went wrong');
+    if (error.name === 'ValidationError') {
+      res.status(400).send('Email already exists');
+    } else {
+      console.error(error);
+      res.status(500).send('Something went wrong');
+    }
   }
 }
 
@@ -37,8 +40,13 @@ async function logIn(req, res) {
   const body = req.body;
   const email = body.email;
 
+  if (email == null || body.password == null) {
+    res.status(400).send('Email and password are required');
+    return;
+  }
+
   const userInDb = await User.findOne({
-    email: email,
+    email: email.trim(),
   });
 
   if (userInDb == null) {
@@ -76,10 +84,6 @@ function isPasswordCorrect(password, hash) {
   const isPasswordOk = bcrypt.compareSync(password, hash);
   return isPasswordOk;
 }
-
-const usersRouter = express.Router();
-usersRouter.post('/signup', signUp);
-usersRouter.post('/login', logIn);
 
 module.exports = { usersRouter };
 

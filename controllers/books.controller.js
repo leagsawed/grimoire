@@ -43,9 +43,10 @@ async function rateBook(req, res) {
 
     //calculer le nouveau averageRating
     bookInDb.averageRating = calculateAverageRatings(bookInDb);
+    bookInDb.imageUrl = getAbsoluteImagePath(bookInDb.imageUrl);
 
     await bookInDb.save();
-    res.send('Rating posted');
+    res.send(bookInDb);
   } catch (e) {
     res.status(500).send('Something went wrong: ' + e.message);
   }
@@ -77,7 +78,7 @@ async function getBestRating(req, res) {
 async function putBook(req, res) {
   const bookId = req.params.id;
   const file = req.file;
-  const book = JSON.parse(req.body.book);
+  const book = req.body;
 
   try {
     const bookInDb = await Book.findById(bookId);
@@ -178,25 +179,27 @@ async function postBook(req, res) {
 }
 
 async function getBooks(req, res) {
-  const booksInDb = await Book.find();
-  booksInDb.forEach((book) => {
-    book.imageUrl = getAbsoluteImagePath(book.imageUrl);
-  });
-  res.send(booksInDb);
+  try {
+    const booksInDb = await Book.find();
+    booksInDb.forEach((book) => {
+      book.imageUrl = getAbsoluteImagePath(book.imageUrl);
+    });
+    res.send(booksInDb);
+  } catch (e) {
+    console.error(e);
+    res.status(500).send(e.message);
+  }
 }
 
 function getAbsoluteImagePath(fileName) {
-  return (
-    process.env.PUBLIC_URL +
-    '/' +
-    process.env.IMAGES_FOLDER_PATH +
-    '/' +
-    fileName
-  );
+  if (!fileName.startsWith('http')) {
+    return process.env.PUBLIC_URL + '/' + process.env.URL_PATH + '/' + fileName;
+  }
+  return fileName;
 }
+
+module.exports = { booksRouter };
 
 // Book.deleteMany({}).then(() => {
 //   console.log('books deleted');
 // });
-
-module.exports = { booksRouter };
