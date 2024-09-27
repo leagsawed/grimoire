@@ -2,6 +2,9 @@ const { Book } = require('../models/Book.js');
 const { upload } = require('../middlewares/multer.js');
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const sharp = require('sharp');
+const path = require('path');
+const fs = require('fs');
 
 const booksRouter = express.Router();
 booksRouter.get('/bestrating', getBestRating);
@@ -98,8 +101,20 @@ async function putBook(req, res) {
     if (book.author) newBook.author = book.author;
     if (book.year) newBook.year = book.year;
     if (book.genre) newBook.genre = book.genre;
-    if (file != null) newBook.imageUrl = file.filename;
-    console.log('newBook :', newBook);
+    if (file != null) {
+      const inputFilePath = file.path;
+      const outputFilePath = path.join(
+        file.destination,
+        `${file.filename}.webp`
+      );
+      await sharp(inputFilePath)
+        .resize(800)
+        .toFormat('webp')
+        .webp({ quality: 80 })
+        .toFile(outputFilePath);
+
+      newBook.imageUrl = `${file.filename}.webp`;
+    }
 
     await Book.findByIdAndUpdate(bookId, newBook);
     res.send('Book updated');
@@ -165,11 +180,22 @@ async function getBookById(req, res) {
 }
 
 async function postBook(req, res) {
-  const filename = req.file.filename;
+  const file = req.file;
   const stringifiedBook = req.body.book;
   const book = JSON.parse(stringifiedBook);
-  book.imageUrl = filename;
+
+  const inputFilePath = file.path;
+  const outputFilePath = path.join(file.destination, `${file.filename}.webp`);
+
   try {
+    await sharp(inputFilePath)
+      .resize(800)
+      .toFormat('webp')
+      .webp({ quality: 80 })
+      .toFile(outputFilePath);
+
+    book.imageUrl = `${file.filename}.webp`;
+
     const result = await Book.create(book);
     res.send({ message: 'Book posted', book: result });
   } catch (e) {
