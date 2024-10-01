@@ -81,8 +81,7 @@ function hashPassword(password) {
 
 //Verification du password
 function isPasswordCorrect(password, hash) {
-  const isPasswordOk = bcrypt.compareSync(password, hash);
-  return isPasswordOk;
+  return bcrypt.compareSync(password, hash);
 }
 
 module.exports = { usersRouter };
