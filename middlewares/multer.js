@@ -1,17 +1,42 @@
 const multer = require('multer');
+const sharp = require('sharp');
+const path = require('path');
+const fs = require('fs');
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, './' + String(process.env.IMAGES_FOLDER));
-  },
-  filename: function (req, file, cb) {
-    const fileName = file.originalname.toLowerCase() + '_' + Date.now();
-    cb(null, fileName);
-  },
-});
+const storage = multer.memoryStorage();
 
 const upload = multer({
   storage,
 });
 
-module.exports = { upload };
+const optimizeImage = async (req, res, next) => {
+  if (!req.file) {
+    return next();
+  }
+
+  const file = req.file;
+  console.log('file:', file);
+  const outputFileName = `${Date.now()}_${file.originalname.toLowerCase()}.webp`;
+  const outputFilePath = path.join(
+    `./${String(process.env.IMAGES_FOLDER)}`,
+    outputFileName
+  );
+
+  try {
+    await sharp(file.buffer)
+      .resize(800)
+      .toFormat('webp')
+      .webp({ quality: 80 })
+      .toFile(outputFilePath);
+
+    file.optimizedFileName = outputFileName;
+    file.optimizedFilePath = outputFilePath;
+    console.log('file.optimizedFileName; :', file.optimizedFileName);
+    next();
+  } catch (e) {
+    console.error("erreur lors de l'optimisation de l'image", e);
+    res.status(500).send("erreur lors de l'optimisation de l'image");
+  }
+};
+
+module.exports = { upload, optimizeImage };
