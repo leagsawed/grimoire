@@ -1,8 +1,7 @@
 const { Book } = require('../models/Book.js');
-const { upload } = require('../middlewares/multer.js');
+const { upload, optimizeImage } = require('../middlewares/multer.js');
 const express = require('express');
 const jwt = require('jsonwebtoken');
-const sharp = require('sharp');
 const path = require('path');
 const fs = require('fs');
 
@@ -10,7 +9,13 @@ const booksRouter = express.Router();
 booksRouter.get('/bestrating', getBestRating);
 booksRouter.get('/:id', getBookById);
 booksRouter.get('/', getBooks);
-booksRouter.post('/', checkToken, upload.single('image'), postBook);
+booksRouter.post(
+  '/',
+  checkToken,
+  upload.single('image'),
+  optimizeImage,
+  postBook
+);
 booksRouter.delete('/:id', checkToken, deleteBook);
 booksRouter.put('/:id', checkToken, upload.single('image'), putBook);
 booksRouter.post('/:id/rating', checkToken, rateBook);
@@ -138,6 +143,25 @@ async function deleteBook(req, res) {
       res.status(403).send("Forbidden: You cannot delete other people's books");
       return;
     }
+
+    // Supprimer l'image associée au livre
+    const imagePath = path.join(
+      __dirname,
+      `../${process.env.IMAGES_FOLDER}`,
+      bookInDb.imageUrl
+    );
+    console.log('__dirname :', __dirname);
+    console.log('imagePath :', imagePath);
+
+    // Vérifier que l'image existe et la supprimer
+    try {
+      await fs.promises.unlink(imagePath);
+      console.log(`Image supprimée: ${imagePath}`);
+    } catch (err) {
+      console.error(`Erreur lors de la suppression de l'image: ${err.message}`);
+      // Tu peux ignorer l'erreur si l'image n'existe pas déjà
+    }
+
     await Book.findByIdAndDelete(bookId);
     res.send('Book deleted');
   } catch (e) {
@@ -180,21 +204,12 @@ async function getBookById(req, res) {
 }
 
 async function postBook(req, res) {
-  const file = req.file;
   const stringifiedBook = req.body.book;
   const book = JSON.parse(stringifiedBook);
 
-  const inputFilePath = file.path;
-  const outputFilePath = path.join(file.destination, `${file.filename}.webp`);
-
   try {
-    await sharp(inputFilePath)
-      .resize(800)
-      .toFormat('webp')
-      .webp({ quality: 80 })
-      .toFile(outputFilePath);
-
-    book.imageUrl = `${file.filename}.webp`;
+    book.imageUrl = req.file.optimizedFileName;
+    console.log('book.imageUrl :', book.imageUrl);
 
     const result = await Book.create(book);
     res.send({ message: 'Book posted', book: result });
