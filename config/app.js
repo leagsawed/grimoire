@@ -1,6 +1,6 @@
 const express = require('express');
 const app = express();
-const cors = require('cors'); //Cross Origin Ressource Sharing,  permet de définir quelles origines peuvent accéder aux ressources du serveur
+const cors = require('cors');
 require('./../db/mongo');
 
 const IMAGES_FOLDER = String(process.env.IMAGES_FOLDER);

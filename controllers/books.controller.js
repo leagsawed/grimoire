@@ -1,5 +1,7 @@
 const { Book } = require('../models/Book.js');
-const { upload, optimizeImage } = require('../middlewares/multer.js');
+const { upload } = require('../middlewares/multer.js');
+const { optimizeImage } = require('../middlewares/optimizeImage.js');
+const { deleteImage } = require('../middlewares/deleteImage.js');
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const path = require('path');
@@ -17,7 +19,13 @@ booksRouter.post(
   postBook
 );
 booksRouter.delete('/:id', checkToken, deleteBook);
-booksRouter.put('/:id', checkToken, upload.single('image'), putBook);
+booksRouter.put(
+  '/:id',
+  checkToken,
+  upload.single('image'),
+  optimizeImage,
+  putBook
+);
 booksRouter.post('/:id/rating', checkToken, rateBook);
 
 async function rateBook(req, res) {
@@ -88,12 +96,20 @@ async function putBook(req, res) {
   const file = req.file;
   const book = req.body;
 
+  console.log('PUT request');
+
+  console.log('file :', file);
+
+  console.log('book :', book);
+
   try {
     const bookInDb = await Book.findById(bookId);
     if (bookInDb == null) {
       res.status(404).send('Book not found');
       return;
     }
+
+    console.log('bookInDb :', bookInDb);
     const userIdInDb = bookInDb.userId;
     const userIdInToken = req.userToken;
     if (userIdInDb != userIdInToken) {
@@ -107,18 +123,9 @@ async function putBook(req, res) {
     if (book.year) newBook.year = book.year;
     if (book.genre) newBook.genre = book.genre;
     if (file != null) {
-      const inputFilePath = file.path;
-      const outputFilePath = path.join(
-        file.destination,
-        `${file.filename}.webp`
-      );
-      await sharp(inputFilePath)
-        .resize(800)
-        .toFormat('webp')
-        .webp({ quality: 80 })
-        .toFile(outputFilePath);
+      await deleteImage(bookInDb.imageUrl);
 
-      newBook.imageUrl = `${file.filename}.webp`;
+      newBook.imageUrl = file.optimizedFileName;
     }
 
     await Book.findByIdAndUpdate(bookId, newBook);
@@ -144,23 +151,7 @@ async function deleteBook(req, res) {
       return;
     }
 
-    // Supprimer l'image associée au livre
-    const imagePath = path.join(
-      __dirname,
-      `../${process.env.IMAGES_FOLDER}`,
-      bookInDb.imageUrl
-    );
-    console.log('__dirname :', __dirname);
-    console.log('imagePath :', imagePath);
-
-    // Vérifier que l'image existe et la supprimer
-    try {
-      await fs.promises.unlink(imagePath);
-      console.log(`Image supprimée: ${imagePath}`);
-    } catch (err) {
-      console.error(`Erreur lors de la suppression de l'image: ${err.message}`);
-      // Tu peux ignorer l'erreur si l'image n'existe pas déjà
-    }
+    await deleteImage(bookInDb.imageUrl);
 
     await Book.findByIdAndDelete(bookId);
     res.send('Book deleted');
