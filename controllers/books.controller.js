@@ -38,26 +38,21 @@ async function rateBook(req, res) {
   const rating = body.rating;
   const userIdInToken = req.userToken;
   try {
-    //trouve le book concerné
     const bookInDb = await Book.findById(bookId);
     if (!bookInDb) {
       return res.status(404).send('Book not found');
     }
-    //trouver si l'user a déjà fait un rating
     const previousRatingFromCurrentUser = bookInDb.ratings.find(
       (rating) => rating.userId == userIdInToken
     );
-    //si user existe déjà, stop
     if (previousRatingFromCurrentUser != null) {
       res.status(400).send('You have already rated this book');
       return;
     }
 
-    // push le nouveau rating dans le bookInDb
     const newRating = { userId: userIdInToken, grade: rating };
     bookInDb.ratings.push(newRating);
 
-    //calculer le nouveau averageRating
     bookInDb.averageRating = calculateAverageRatings(bookInDb);
     bookInDb.imageUrl = getAbsoluteImagePath(bookInDb.imageUrl);
 
@@ -96,12 +91,6 @@ async function putBook(req, res) {
   const file = req.file;
   const book = req.body;
 
-  console.log('PUT request');
-
-  console.log('file :', file);
-
-  console.log('book :', book);
-
   try {
     const bookInDb = await Book.findById(bookId);
     if (bookInDb == null) {
@@ -109,7 +98,6 @@ async function putBook(req, res) {
       return;
     }
 
-    console.log('bookInDb :', bookInDb);
     const userIdInDb = bookInDb.userId;
     const userIdInToken = req.userToken;
     if (userIdInDb != userIdInToken) {
@@ -198,10 +186,16 @@ async function postBook(req, res) {
   const stringifiedBook = req.body.book;
   const book = JSON.parse(stringifiedBook);
 
-  try {
-    book.imageUrl = req.file.optimizedFileName;
-    console.log('book.imageUrl :', book.imageUrl);
+  if (!book.title || !book.year || !book.genre || !book.ratings[0].grade) {
+    return res.status(400).send('All fields should be filled');
+  }
 
+  try {
+    if (!req.file || !req.file.optimizedFileName) {
+      return res.status(400).send('Image is required');
+    }
+
+    book.imageUrl = req.file.optimizedFileName;
     const result = await Book.create(book);
     res.send({ message: 'Book posted', book: result });
   } catch (e) {
@@ -231,7 +225,3 @@ function getAbsoluteImagePath(fileName) {
 }
 
 module.exports = { booksRouter };
-
-// Book.deleteMany({}).then(() => {
-//   console.log('books deleted');
-// });

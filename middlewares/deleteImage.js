@@ -12,7 +12,6 @@ async function deleteImage(imageUrl) {
 
   try {
     await fs.promises.unlink(imagePath);
-    console.log(`Image supprimée: ${imagePath}`);
   } catch (err) {
     if (err.code !== 'ENOENT') {
       console.error(`Erreur lors de la suppression de l'image: ${err.message}`);

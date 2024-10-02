@@ -72,20 +72,14 @@ async function logIn(req, res) {
   });
 }
 
-//cryptage du password
 function hashPassword(password) {
   const salt = bcrypt.genSaltSync(10);
   const hash = bcrypt.hashSync(password, salt);
   return hash;
 }
 
-//Verification du password
 function isPasswordCorrect(password, hash) {
   return bcrypt.compareSync(password, hash);
 }
 
 module.exports = { usersRouter };
-
-// User.deleteMany({}).then(() => {
-//   console.log('users deleted');
-// });
