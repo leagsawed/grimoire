@@ -146,7 +146,7 @@ async function postBook(req, res) {
   const stringifiedBook = req.body.book;
   const book = JSON.parse(stringifiedBook);
 
-  if (!book.title || !book.year || !book.genre) {
+  if (!book.title || !book.year || !book.author || !book.genre) {
     return res.status(400).send('Tous les champs sont requis');
   }
 
