@@ -2,12 +2,6 @@ const bcrypt = require('bcrypt');
 const { User } = require('../models/User.js');
 const jwt = require('jsonwebtoken');
 
-const express = require('express');
-
-const usersRouter = express.Router();
-usersRouter.post('/signup', signUp);
-usersRouter.post('/login', logIn);
-
 async function signUp(req, res) {
   const body = req.body;
   const email = body.email;
@@ -82,4 +76,4 @@ function isPasswordCorrect(password, hash) {
   return bcrypt.compareSync(password, hash);
 }
 
-module.exports = { usersRouter };
+module.exports = { signUp, logIn };

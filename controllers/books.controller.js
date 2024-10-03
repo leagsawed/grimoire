@@ -1,30 +1,5 @@
 const { Book } = require('../models/Book.js');
-const { upload } = require('../middlewares/multer.js');
-const { optimizeImage } = require('../middlewares/optimizeImage.js');
 const { deleteImage } = require('../middlewares/deleteImage.js');
-const { checkToken } = require('../middlewares/checkToken.js');
-const express = require('express');
-
-const booksRouter = express.Router();
-booksRouter.get('/bestrating', getBestRating);
-booksRouter.get('/:id', getBookById);
-booksRouter.get('/', getBooks);
-booksRouter.post(
-  '/',
-  checkToken,
-  upload.single('image'),
-  optimizeImage,
-  postBook
-);
-booksRouter.delete('/:id', checkToken, deleteBook);
-booksRouter.put(
-  '/:id',
-  checkToken,
-  upload.single('image'),
-  optimizeImage,
-  putBook
-);
-booksRouter.post('/:id/rating', checkToken, rateBook);
 
 async function rateBook(req, res) {
   const bookId = req.params.id;
@@ -212,4 +187,12 @@ function getAbsoluteImagePath(fileName) {
   return fileName;
 }
 
-module.exports = { booksRouter };
+module.exports = {
+  postBook,
+  putBook,
+  deleteBook,
+  rateBook,
+  getBookById,
+  getBooks,
+  getBestRating,
+};

@@ -1,8 +1,8 @@
 require('dotenv').config();
 
 const { app } = require('./config/app.js');
-const { usersRouter } = require('./controllers/users.controller');
-const { booksRouter } = require('./controllers/books.controller.js');
+const { usersRouter } = require('./routes/users.routes');
+const { booksRouter } = require('./routes/books.routes');
 
 const PORT = process.env.PORT || 4000;
 
