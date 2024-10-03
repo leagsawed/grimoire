@@ -2,10 +2,8 @@ const { Book } = require('../models/Book.js');
 const { upload } = require('../middlewares/multer.js');
 const { optimizeImage } = require('../middlewares/optimizeImage.js');
 const { deleteImage } = require('../middlewares/deleteImage.js');
+const { checkToken } = require('../middlewares/checkToken.js');
 const express = require('express');
-const jwt = require('jsonwebtoken');
-const path = require('path');
-const fs = require('fs');
 
 const booksRouter = express.Router();
 booksRouter.get('/bestrating', getBestRating);
@@ -40,13 +38,13 @@ async function rateBook(req, res) {
   try {
     const bookInDb = await Book.findById(bookId);
     if (!bookInDb) {
-      return res.status(404).send('Book not found');
+      return res.status(404).send('Livre inexistant');
     }
     const previousRatingFromCurrentUser = bookInDb.ratings.find(
       (rating) => rating.userId == userIdInToken
     );
     if (previousRatingFromCurrentUser != null) {
-      res.status(400).send('You have already rated this book');
+      res.status(400).send('Vous avez déjà noté ce livre');
       return;
     }
 
@@ -59,7 +57,7 @@ async function rateBook(req, res) {
     await bookInDb.save();
     res.send(bookInDb);
   } catch (e) {
-    res.status(500).send('Something went wrong: ' + e.message);
+    res.status(500).send('Il y a eu un problème: ' + e.message);
   }
 }
 
@@ -82,7 +80,7 @@ async function getBestRating(req, res) {
     res.send(booksWithBestRatings);
   } catch (e) {
     console.error(e);
-    res.status(500).send('Something went wrong: ' + e.message);
+    res.status(500).send('Il y a eu un problème: ' + e.message);
   }
 }
 
@@ -94,14 +92,14 @@ async function putBook(req, res) {
   try {
     const bookInDb = await Book.findById(bookId);
     if (bookInDb == null) {
-      res.status(404).send('Book not found');
+      res.status(404).send('Livre inexistant');
       return;
     }
 
     const userIdInDb = bookInDb.userId;
     const userIdInToken = req.userToken;
     if (userIdInDb != userIdInToken) {
-      res.status(403).send('Forbidden');
+      res.status(403).send('Non-autorisé');
       return;
     }
 
@@ -117,10 +115,10 @@ async function putBook(req, res) {
     }
 
     await Book.findByIdAndUpdate(bookId, newBook);
-    res.send('Book updated');
+    res.send('Livre mis à jour');
   } catch (e) {
     console.error(e);
-    res.status(500).send('Something went wrong: ' + e.message);
+    res.status(500).send('Il y a eu un problème: ' + e.message);
   }
 }
 
@@ -135,7 +133,11 @@ async function deleteBook(req, res) {
     const userIdInDb = bookInDb.userId;
     const userIdInToken = req.userToken;
     if (userIdInDb != userIdInToken) {
-      res.status(403).send("Forbidden: You cannot delete other people's books");
+      res
+        .status(403)
+        .send(
+          'Vous ne pouvez pas supprimer les livres des autres utilisateurs'
+        );
       return;
     }
 
@@ -145,24 +147,7 @@ async function deleteBook(req, res) {
     res.send('Book deleted');
   } catch (e) {
     console.error(e);
-    res.status(500).send('Something went wrong: ' + e.message);
-  }
-}
-
-function checkToken(req, res, next) {
-  const authorization = req.headers.authorization;
-  if (authorization == null) {
-    res.status(401).send('Unauthorized');
-    return;
-  }
-  const token = authorization.split(' ')[1];
-  try {
-    const tokenPayload = jwt.verify(token, process.env.JWT_SECRET);
-    req.userToken = tokenPayload.userId;
-    next();
-  } catch (e) {
-    console.error(e);
-    res.status(401).send('Unauthorized');
+    res.status(500).send('Il y a eu un problème: ' + e.message);
   }
 }
 
@@ -171,14 +156,14 @@ async function getBookById(req, res) {
     const id = req.params.id;
     const book = await Book.findById(id);
     if (book == null) {
-      res.status(404).send('Book not found');
+      res.status(404).send('Livre inexistant');
       return;
     }
     book.imageUrl = getAbsoluteImagePath(book.imageUrl);
     res.send(book);
   } catch (e) {
     console.error(e);
-    res.status(500).send('something went wrong: ' + e.message);
+    res.status(500).send('Il y a eu un problème: ' + e.message);
   }
 }
 
@@ -186,10 +171,13 @@ async function postBook(req, res) {
   const stringifiedBook = req.body.book;
   const book = JSON.parse(stringifiedBook);
 
-  if (!book.title || !book.year || !book.genre || !book.ratings[0].grade) {
-    return res.status(400).send('All fields should be filled');
+  if (!book.title || !book.year || !book.genre) {
+    return res.status(400).send('Tous les champs sont requis');
   }
 
+  if (!book.ratings[0].grade) {
+    return res.status(400).send('Veuillez attribuer une note');
+  }
   try {
     if (!req.file || !req.file.optimizedFileName) {
       return res.status(400).send('Image is required');
@@ -197,7 +185,7 @@ async function postBook(req, res) {
 
     book.imageUrl = req.file.optimizedFileName;
     const result = await Book.create(book);
-    res.send({ message: 'Book posted', book: result });
+    res.send({ message: 'Livre publié', book: result });
   } catch (e) {
     console.error(e);
     res.status(500).send(e.message);
