@@ -14,7 +14,7 @@ async function signUp(req, res) {
   const password = body.password;
 
   if (!email || !password || email.trim() === '' || password.trim() === '') {
-    res.status(400).send('Email and password are required');
+    res.status(400).send('Email et mot de passe requis');
     return;
   }
 
@@ -25,13 +25,13 @@ async function signUp(req, res) {
     });
 
     await user.save();
-    res.send('User created');
+    res.send('Utilisateur créé');
   } catch (error) {
     if (error.name === 'ValidationError') {
-      res.status(400).send('Email already exists');
+      res.status(400).send('Email déjà existant');
     } else {
       console.error(error);
-      res.status(500).send('Something went wrong');
+      res.status(500).send('Il y a eu un problème');
     }
   }
 }
@@ -41,7 +41,7 @@ async function logIn(req, res) {
   const email = body.email;
 
   if (email == null || body.password == null) {
-    res.status(400).send('Email and password are required');
+    res.status(400).send('Email et mot de passe requis');
     return;
   }
 
@@ -50,12 +50,12 @@ async function logIn(req, res) {
   });
 
   if (userInDb == null) {
-    res.status(401).send('Wrong email');
+    res.status(401).send('Email non valide');
     return;
   }
   const passwordInDb = userInDb.password;
   if (!isPasswordCorrect(body.password, passwordInDb)) {
-    res.status(401).send('Wrong password');
+    res.status(401).send('Mot de passe non valide');
     return;
   }
   function generateToken(userInDb) {
